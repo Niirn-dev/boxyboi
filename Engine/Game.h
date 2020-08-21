@@ -43,6 +43,7 @@ private:
 	void UpdateModel();
 	/********************************/
 	/*  User Functions              */
+	void SplitBox( const Box* box,unsigned int factor = 2 );
 	/********************************/
 private:
 	MainWindow& wnd;
@@ -51,6 +52,7 @@ private:
 	/*  User Variables              */
 	static constexpr float boundarySize = 10.0f;
 	static constexpr float boxSize = 1.0f;
+	static constexpr float minBoxSize = 0.2f;
 	static constexpr int nBoxes = 6;
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 	FrameTimer ft;

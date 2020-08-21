@@ -28,7 +28,7 @@
 #include <iterator>
 #include <set>
 
-std::set<Box*> upForDeletion;
+std::set<Box*> upForPartition;
 
 Game::Game( MainWindow& wnd )
 	:
@@ -63,11 +63,38 @@ Game::Game( MainWindow& wnd )
 				std::stringstream msg;
 				msg << "Collision between " << tid0.name() << " and " << tid1.name() << std::endl;
 				OutputDebugStringA( msg.str().c_str() );
-				
-				if ( tid0 == tid1 )
+			}
+		}
+		void EndContact( b2Contact* contact ) override
+		{
+			const b2Body* bodyPtrs[] = { contact->GetFixtureA()->GetBody(),contact->GetFixtureB()->GetBody() };
+			if ( bodyPtrs[0]->GetType() == b2BodyType::b2_dynamicBody &&
+				 bodyPtrs[1]->GetType() == b2BodyType::b2_dynamicBody )
+			{
+				Box* boxPtrs[] = {
+					reinterpret_cast<Box*>( bodyPtrs[0]->GetUserData() ),
+					reinterpret_cast<Box*>( bodyPtrs[1]->GetUserData() )
+				};
+				auto& tid0 = typeid( boxPtrs[0]->GetColorTrait() );
+				auto& tid1 = typeid( boxPtrs[1]->GetColorTrait() );
+
+				std::stringstream msg;
+				msg << "End of collision between " << tid0.name() << " and " << tid1.name() << std::endl;
+				OutputDebugStringA( msg.str().c_str() );
+
+				const auto& c0 = boxPtrs[0]->GetColorTrait().GetColor();
+				const auto& c1 = boxPtrs[1]->GetColorTrait().GetColor();
+
+				if ( ( ( c0 == Colors::Green ) && ( c1 == Colors::Blue ) ) ||
+					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::Green ) ) )
 				{
-					upForDeletion.emplace( boxPtrs[0] );
-					upForDeletion.emplace( boxPtrs[1] );
+					for ( int i = 0; i < 2; ++i )
+					{
+						if ( boxPtrs[i]->GetSize() > minBoxSize )
+						{
+							upForPartition.emplace( boxPtrs[i] );
+						}
+					}
 				}
 			}
 		}
@@ -91,10 +118,13 @@ void Game::UpdateModel()
 
 	if ( !world.IsLocked() )
 	{
-		if ( !upForDeletion.empty() )
+		if ( !upForPartition.empty() )
 		{
-			for ( auto it = upForDeletion.begin(); it != upForDeletion.end(); ++it )
+			for ( auto it = upForPartition.begin(); it != upForPartition.end(); ++it )
 			{
+				SplitBox( *it );
+
+				// Destroy old box
 				auto target = std::find_if( boxPtrs.begin(),boxPtrs.end(),
 											[it]( const std::unique_ptr<Box>& p ) 
 											{
@@ -103,7 +133,32 @@ void Game::UpdateModel()
 				target->reset();
 				boxPtrs.erase( target );
 			}
-			upForDeletion.clear();
+			upForPartition.clear();
+		}
+	}
+}
+
+void Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
+{
+	const float oldSize = box->GetSize();
+	const float newSize = oldSize / (float)factor;
+
+	const Vec2 oldBottomLeft = box->GetPosition() - Vec2{ oldSize,oldSize };
+	const Vec2 oldTopRight = box->GetPosition() + Vec2{ oldSize,oldSize };
+	for ( Vec2 pos = oldBottomLeft + Vec2{ newSize,newSize };
+		  pos.y < oldTopRight.y; pos.y += 2 * newSize )
+	{
+		for ( pos.x = oldBottomLeft.x; pos.x < oldTopRight.x; pos.x += 2 * newSize )
+		{
+			boxPtrs.push_back( std::make_unique<Box>(
+					box->GetColorTrait().Clone(),
+					world,
+					pos,
+					newSize,
+					box->GetAngle(),
+					box->GetVelocity(),
+					box->GetAngularVelocity()
+				) );
 		}
 	}
 }
