@@ -21,6 +21,7 @@
 #include "MainWindow.h"
 #include "Game.h"
 #include "Box.h"
+#include "Mat2.h"
 #include <algorithm>
 #include <sstream>
 #include <typeinfo>
@@ -143,17 +144,20 @@ void Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 	const float oldSize = box->GetSize();
 	const float newSize = oldSize / (float)factor;
 
-	const Vec2 oldBottomLeft = box->GetPosition() - Vec2{ oldSize,oldSize };
-	const Vec2 oldTopRight = box->GetPosition() + Vec2{ oldSize,oldSize };
+	const Vec2 oldBoxCenter = box->GetPosition();
+	const Mat2 rMat = _Mat2<float>::Rotation( box->GetAngle() );
+	const Vec2 oldBottomLeft = oldBoxCenter - Vec2{ oldSize,oldSize };
+	const Vec2 oldTopRight = oldBoxCenter + Vec2{ oldSize,oldSize };
 	for ( Vec2 pos = oldBottomLeft + Vec2{ newSize,newSize };
 		  pos.y < oldTopRight.y; pos.y += 2 * newSize )
 	{
 		for ( pos.x = oldBottomLeft.x; pos.x < oldTopRight.x; pos.x += 2 * newSize )
 		{
+			const Vec2 toRotatedPos = ( pos - oldBoxCenter ) * rMat;
 			boxPtrs.push_back( std::make_unique<Box>(
 					box->GetColorTrait().Clone(),
 					world,
-					pos,
+					oldBoxCenter + toRotatedPos,
 					newSize,
 					box->GetAngle(),
 					box->GetVelocity(),
