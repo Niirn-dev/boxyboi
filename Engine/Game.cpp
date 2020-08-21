@@ -26,6 +26,9 @@
 #include <typeinfo>
 #include <functional>
 #include <iterator>
+#include <set>
+
+std::set<Box*> upForDeletion;
 
 Game::Game( MainWindow& wnd )
 	:
@@ -60,6 +63,12 @@ Game::Game( MainWindow& wnd )
 				std::stringstream msg;
 				msg << "Collision between " << tid0.name() << " and " << tid1.name() << std::endl;
 				OutputDebugStringA( msg.str().c_str() );
+				
+				if ( tid0 == tid1 )
+				{
+					upForDeletion.emplace( boxPtrs[0] );
+					upForDeletion.emplace( boxPtrs[1] );
+				}
 			}
 		}
 	};
@@ -79,6 +88,24 @@ void Game::UpdateModel()
 {
 	const float dt = ft.Mark();
 	world.Step( dt,8,3 );
+
+	if ( !world.IsLocked() )
+	{
+		if ( !upForDeletion.empty() )
+		{
+			for ( auto it = upForDeletion.begin(); it != upForDeletion.end(); ++it )
+			{
+				auto target = std::find_if( boxPtrs.begin(),boxPtrs.end(),
+											[it]( const std::unique_ptr<Box>& p ) 
+											{
+												return p.get() == *it;
+											} );
+				target->reset();
+				boxPtrs.erase( target );
+			}
+			upForDeletion.clear();
+		}
+	}
 }
 
 void Game::ComposeFrame()
