@@ -51,13 +51,21 @@ private:
 		{
 			return dflt;
 		}
-		void Call( const std::pair<Box*,Box*> bp )
+		void Call( const std::pair<Box*,Box*>& bp )
 		{
+			// Look up exact pair
 			if ( auto target = map.find( { bp.first->GetColorTrait().GetColor(),bp.second->GetColorTrait().GetColor() } );
 				 target != map.end() )
 			{
 				target->second( bp );
 			}
+			// Look up reversed pair
+			else if ( auto target = map.find( { bp.second->GetColorTrait().GetColor(),bp.first->GetColorTrait().GetColor() } );
+					 target != map.end() )
+			{
+				target->second( bp );
+			}
+			// Do default
 			else
 			{
 				dflt();
@@ -89,7 +97,7 @@ private:
 	/*  User Variables              */
 	static constexpr float boundarySize = 10.0f;
 	static constexpr float boxSize = 1.0f;
-	static constexpr float minBoxSize = 0.2f;
+	static constexpr float minBoxSize = 0.15f;
 	static constexpr int nBoxes = 6;
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 	FrameTimer ft;

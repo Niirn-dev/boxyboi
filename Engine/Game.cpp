@@ -50,11 +50,6 @@ Game::Game( MainWindow& wnd )
 	{ 
 		SplitSmallest( bp );
 	};
-	em.Case( { Colors::Green,Colors::Blue } ) =
-		[&]( const std::pair<Box*,Box*> bp )
-	{
-		SplitSmallest( bp );
-	};
 
 	class Listener : public b2ContactListener
 	{
