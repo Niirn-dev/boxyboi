@@ -178,8 +178,8 @@ bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 	const Mat2 rMat = _Mat2<float>::Rotation( box->GetAngle() );
 	const Vec2 oldBottomLeft = oldBoxCenter - Vec2{ oldSize,oldSize };
 	const Vec2 oldTopRight = oldBoxCenter + Vec2{ oldSize,oldSize };
-	for ( Vec2 pos = oldBottomLeft + Vec2{ newSize,newSize };
-		  pos.y < oldTopRight.y; pos.y += 2 * newSize )
+	for ( auto [pos,i] = std::pair( oldBottomLeft + Vec2{ newSize,newSize },0 );
+		  pos.y < oldTopRight.y && i < factor; pos.y += 2 * newSize,++i )
 	{
 		for ( pos.x = oldBottomLeft.x; pos.x < oldTopRight.x; pos.x += 2 * newSize )
 		{
