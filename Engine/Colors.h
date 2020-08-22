@@ -129,3 +129,27 @@ namespace Colors
 	static constexpr Color Cyan = MakeRGB( 0u,255u,255u );
 	static constexpr Color Magenta = MakeRGB( 255u,0u,255u );
 }
+
+#include <functional>
+namespace std
+{
+	template<>
+	struct hash<Color>
+	{
+		size_t operator()( Color c ) const
+		{
+			return hash<unsigned char>()( c.dword );
+		}
+	};
+
+	template<>
+	struct hash<std::pair<Color,Color>>
+	{
+		size_t operator()( const std::pair<Color,Color>& cp ) const
+		{
+			auto seed = hash<Color>()( cp.first );
+			seed ^= hash<Color>()( cp.second ) + 0x9e3779b9 + ( seed << 6 ) + ( seed >> 2 );
+			return seed;
+		}
+	};
+}

@@ -44,6 +44,17 @@ Game::Game( MainWindow& wnd )
 	std::generate_n( std::back_inserter( boxPtrs ),nBoxes,[this]() {
 		return Box::Spawn( boxSize,bounds,world,rng );
 	} );
+	
+	em.Case( { Colors::Blue,Colors::Green } ) = 
+		[&]( const std::pair<Box*,Box*> bp ) 
+	{ 
+		SplitSmallest( bp );
+	};
+	em.Case( { Colors::Green,Colors::Blue } ) =
+		[&]( const std::pair<Box*,Box*> bp )
+	{
+		SplitSmallest( bp );
+	};
 
 	class Listener : public b2ContactListener
 	{
@@ -89,12 +100,11 @@ Game::Game( MainWindow& wnd )
 				if ( ( ( c0 == Colors::Green ) && ( c1 == Colors::Blue ) ) ||
 					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::Green ) ) )
 				{
-					for ( int i = 0; i < 2; ++i )
+					if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
+						 upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
 					{
-						if ( boxPtrs[i]->GetSize() > minBoxSize )
-						{
-							upForPartition.emplace( boxPtrs[i] );
-						}
+						upForPartition.emplace( boxPtrs[0] );
+						upForPartition.emplace( boxPtrs[1] );
 					}
 				}
 			}
@@ -121,28 +131,25 @@ void Game::UpdateModel()
 	{
 		if ( !upForPartition.empty() )
 		{
-			for ( auto it = upForPartition.begin(); it != upForPartition.end(); ++it )
+			for ( auto it = upForPartition.begin(); it != upForPartition.end(); std::advance( it,1 ) )
 			{
-				SplitBox( *it );
-
-				// Destroy old box
-				auto target = std::find_if( boxPtrs.begin(),boxPtrs.end(),
-											[it]( const std::unique_ptr<Box>& p ) 
-											{
-												return p.get() == *it;
-											} );
-				target->reset();
-				boxPtrs.erase( target );
+				auto prev = it;
+				std::advance( it,1 );
+				em.Call( { *prev,*it } );
 			}
 			upForPartition.clear();
 		}
 	}
 }
 
-void Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
+bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 {
 	const float oldSize = box->GetSize();
 	const float newSize = oldSize / (float)factor;
+	if ( newSize < minBoxSize )
+	{
+		return false;
+	}
 
 	const Vec2 oldBoxCenter = box->GetPosition();
 	const Mat2 rMat = _Mat2<float>::Rotation( box->GetAngle() );
@@ -163,6 +170,36 @@ void Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 					box->GetVelocity(),
 					box->GetAngularVelocity()
 				) );
+		}
+	}
+	return true;
+}
+
+void Game::DestroyBox( const Box* box )
+{
+	auto target = std::find_if( boxPtrs.begin(),boxPtrs.end(),
+								[&box]( const std::unique_ptr<Box>& p )
+								{
+									return p.get() == box;
+								} );
+	target->reset();
+	boxPtrs.erase( target );
+}
+
+void Game::SplitSmallest( const std::pair<Box*,Box*>& bp )
+{
+	if ( bp.first->GetSize() > bp.second->GetSize() )
+	{
+		if ( SplitBox( bp.first ) )
+		{
+			DestroyBox( bp.first );
+		}
+	}
+	else
+	{
+		if ( SplitBox( bp.second ) )
+		{
+			DestroyBox( bp.second );
 		}
 	}
 }

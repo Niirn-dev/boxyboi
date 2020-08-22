@@ -30,9 +30,44 @@
 #include "Pipeline.h"
 #include "SolidEffect.h"
 #include <random>
+#include <unordered_map>
+#include <functional>
 
 class Game
 {
+private:
+	class EventManager
+	{
+	public:
+		EventManager()
+		{
+			dflt = []() {};
+		}
+		std::function<void( const std::pair<Box*,Box*> )>& Case( std::pair<Color,Color> cp )
+		{
+			return map[cp];
+		}
+		std::function<void()>& Default()
+		{
+			return dflt;
+		}
+		void Call( const std::pair<Box*,Box*> bp )
+		{
+			if ( auto target = map.find( { bp.first->GetColorTrait().GetColor(),bp.second->GetColorTrait().GetColor() } );
+				 target != map.end() )
+			{
+				target->second( bp );
+			}
+			else
+			{
+				dflt();
+			}
+		}
+
+	private:
+		std::unordered_map<std::pair<Color,Color>,std::function<void( const std::pair<Box*,Box*> )>> map;
+		std::function<void()> dflt;
+	};
 public:
 	Game( class MainWindow& wnd );
 	Game( const Game& ) = delete;
@@ -43,7 +78,9 @@ private:
 	void UpdateModel();
 	/********************************/
 	/*  User Functions              */
-	void SplitBox( const Box* box,unsigned int factor = 2 );
+	bool SplitBox( const Box* box,unsigned int factor = 2 );
+	void DestroyBox( const Box* box );
+	void SplitSmallest( const std::pair<Box*,Box*>& bp );
 	/********************************/
 private:
 	MainWindow& wnd;
@@ -60,5 +97,6 @@ private:
 	b2World world;
 	Boundaries bounds = Boundaries( world,boundarySize );
 	std::vector<std::unique_ptr<Box>> boxPtrs;
+	EventManager em;
 	/********************************/
 };
