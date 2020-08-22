@@ -46,12 +46,12 @@ Game::Game( MainWindow& wnd )
 	} );
 	
 	em.Case( { Colors::Blue,Colors::Green } ) = 
-		[&]( const std::pair<Box*,Box*> bp ) 
+		[&]( const std::pair<Box*,Box*>& bp ) 
 	{ 
 		SplitSmallest( bp );
 	};
 	em.Case( { Colors::Blue,Colors::White } ) =
-		[]( const std::pair<Box*,Box*> bp )
+		[]( const std::pair<Box*,Box*>& bp )
 	{
 		if ( bp.first->GetColorTrait().GetColor() == Colors::White )
 		{
@@ -60,6 +60,18 @@ Game::Game( MainWindow& wnd )
 		else
 		{
 			bp.second->SetColorTrait( std::move( bp.first->GetColorTrait().Clone() ) );
+		}
+	};
+	em.Case( { Colors::Yellow,Colors::Blue } ) =
+		[&]( const std::pair<Box*,Box*>& bp )
+	{
+		if ( bp.first->GetColorTrait().GetColor() == Colors::Blue )
+		{
+			DestroyBox( bp.first );
+		}
+		else
+		{
+			DestroyBox( bp.second );
 		}
 	};
 

@@ -43,7 +43,7 @@ private:
 		{
 			dflt = []() {};
 		}
-		std::function<void( const std::pair<Box*,Box*> )>& Case( std::pair<Color,Color> cp )
+		std::function<void( const std::pair<Box*,Box*>& )>& Case( std::pair<Color,Color> cp )
 		{
 			return map[cp];
 		}
@@ -73,7 +73,7 @@ private:
 		}
 
 	private:
-		std::unordered_map<std::pair<Color,Color>,std::function<void( const std::pair<Box*,Box*> )>> map;
+		std::unordered_map<std::pair<Color,Color>,std::function<void( const std::pair<Box*,Box*>& )>> map;
 		std::function<void()> dflt;
 	};
 public:
