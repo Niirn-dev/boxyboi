@@ -98,7 +98,7 @@ private:
 	static constexpr float boundarySize = 10.0f;
 	static constexpr float boxSize = 1.0f;
 	static constexpr float minBoxSize = 0.15f;
-	static constexpr int nBoxes = 10;
+	static constexpr int nBoxes = 6;
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 	FrameTimer ft;
 	Pipeline<SolidEffect> pepe;

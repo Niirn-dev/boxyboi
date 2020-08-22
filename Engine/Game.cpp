@@ -80,6 +80,11 @@ Game::Game( MainWindow& wnd )
 		bp.first->ApplyLinearImpulse( bp.first->GetVelocity() * 0.5f );
 		bp.second->ApplyLinearImpulse( bp.second->GetVelocity() * 0.5f );
 	};
+	em.Case( { Colors::Cyan,Colors::Cyan } ) =
+		[&]( const std::pair<Box*,Box*>& bp )
+	{
+		world.SetGravity( -world.GetGravity() );
+	};
 
 	class Listener : public b2ContactListener
 	{
@@ -120,7 +125,7 @@ Game::Game( MainWindow& wnd )
 				OutputDebugStringA( msg.str().c_str() );
 
 				if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
-						upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
+					 upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
 				{
 					upForPartition.emplace( boxPtrs[0] );
 					upForPartition.emplace( boxPtrs[1] );

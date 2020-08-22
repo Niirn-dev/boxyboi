@@ -67,6 +67,19 @@ public:
 	}
 };
 
+class CyanTrait : public Box::ColorTrait
+{
+public:
+	std::unique_ptr<ColorTrait> Clone() const override
+	{
+		return std::make_unique<CyanTrait>();
+	}
+	Color GetColor() const override
+	{
+		return Colors::Cyan;
+	}
+};
+
 std::unique_ptr<Box> Box::Spawn( float size,const Boundaries& bounds,b2World& world,std::mt19937& rng )
 {
 	std::uniform_real_distribution<float> pos_dist(
@@ -75,7 +88,7 @@ std::unique_ptr<Box> Box::Spawn( float size,const Boundaries& bounds,b2World& wo
 	);
 	std::uniform_real_distribution<float> power_dist( 0.0f,6.0f );
 	std::uniform_real_distribution<float> angle_dist( -PI,PI );
-	std::uniform_int_distribution<int> type_dist( 0,4 );
+	std::uniform_int_distribution<int> type_dist( 0,5 );
 
 	const auto linVel = (Vec2{ 1.0f,0.0f } * Mat2::Rotation( angle_dist( rng ) )) * power_dist( rng );
 	const auto pos = Vec2{ pos_dist( rng ),pos_dist( rng ) };
@@ -99,6 +112,9 @@ std::unique_ptr<Box> Box::Spawn( float size,const Boundaries& bounds,b2World& wo
 		break;
 	case 4:
 		pColorTrait = std::make_unique<YellowTrait>();
+		break;
+	case 5:
+		pColorTrait = std::make_unique<CyanTrait>();
 		break;
 	}
 	
