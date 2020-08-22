@@ -50,6 +50,18 @@ Game::Game( MainWindow& wnd )
 	{ 
 		SplitSmallest( bp );
 	};
+	em.Case( { Colors::Blue,Colors::White } ) =
+		[]( const std::pair<Box*,Box*> bp )
+	{
+		if ( bp.first->GetColorTrait().GetColor() == Colors::White )
+		{
+			bp.first->SetColorTrait( std::move( bp.second->GetColorTrait().Clone() ) );
+		}
+		else
+		{
+			bp.second->SetColorTrait( std::move( bp.first->GetColorTrait().Clone() ) );
+		}
+	};
 
 	class Listener : public b2ContactListener
 	{
@@ -93,7 +105,9 @@ Game::Game( MainWindow& wnd )
 				const auto& c1 = boxPtrs[1]->GetColorTrait().GetColor();
 
 				if ( ( ( c0 == Colors::Green ) && ( c1 == Colors::Blue ) ) ||
-					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::Green ) ) )
+					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::Green ) ) ||
+					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::White ) ) ||
+					 ( ( c0 == Colors::White ) && ( c1 == Colors::Blue ) ) )
 				{
 					if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
 						 upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
@@ -157,7 +171,7 @@ bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 		{
 			const Vec2 toRotatedPos = ( pos - oldBoxCenter ) * rMat;
 			boxPtrs.push_back( std::make_unique<Box>(
-					box->GetColorTrait().Clone(),
+					std::move( box->GetColorTrait().Clone() ),
 					world,
 					oldBoxCenter + toRotatedPos,
 					newSize,

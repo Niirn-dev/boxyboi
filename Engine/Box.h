@@ -95,6 +95,11 @@ public:
 	{
 		return *pColorTrait;
 	}
+	void SetColorTrait( std::unique_ptr<ColorTrait> ct )
+	{
+		pColorTrait.reset();
+		pColorTrait = std::move( ct );
+	}
 private:
 	static void Init()
 	{
