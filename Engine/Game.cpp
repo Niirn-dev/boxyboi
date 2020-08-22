@@ -101,20 +101,11 @@ Game::Game( MainWindow& wnd )
 				msg << "End of collision between " << tid0.name() << " and " << tid1.name() << std::endl;
 				OutputDebugStringA( msg.str().c_str() );
 
-				const auto& c0 = boxPtrs[0]->GetColorTrait().GetColor();
-				const auto& c1 = boxPtrs[1]->GetColorTrait().GetColor();
-
-				if ( ( ( c0 == Colors::Green ) && ( c1 == Colors::Blue ) ) ||
-					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::Green ) ) ||
-					 ( ( c0 == Colors::Blue ) && ( c1 == Colors::White ) ) ||
-					 ( ( c0 == Colors::White ) && ( c1 == Colors::Blue ) ) )
+				if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
+						upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
 				{
-					if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
-						 upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
-					{
-						upForPartition.emplace( boxPtrs[0] );
-						upForPartition.emplace( boxPtrs[1] );
-					}
+					upForPartition.emplace( boxPtrs[0] );
+					upForPartition.emplace( boxPtrs[1] );
 				}
 			}
 		}
