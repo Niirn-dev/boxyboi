@@ -74,6 +74,12 @@ Game::Game( MainWindow& wnd )
 			DestroyBox( bp.second );
 		}
 	};
+	em.Case( { Colors::Red,Colors::Yellow } ) =
+		[]( const std::pair<Box*,Box*>& bp )
+	{
+		bp.first->ApplyLinearImpulse( bp.first->GetVelocity() * 0.5f );
+		bp.second->ApplyLinearImpulse( bp.second->GetVelocity() * 0.5f );
+	};
 
 	class Listener : public b2ContactListener
 	{
