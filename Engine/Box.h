@@ -52,10 +52,6 @@ public:
 		}
 		pBody->SetUserData( this );
 	}
-	~Box()
-	{
-		pBody->GetWorld()->DestroyBody( pBody.release() );
-	}
 	void Draw( Pipeline<SolidEffect>& pepe ) const
 	{
 		pepe.effect.vs.BindTranslation( GetPosition() );
