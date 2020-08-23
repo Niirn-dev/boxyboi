@@ -22,14 +22,14 @@
 #include "Game.h"
 #include "Box.h"
 #include "Mat2.h"
+#include "PatternMatchingListener.h"
+#include "ColorTrait.h"
 #include <algorithm>
 #include <sstream>
 #include <typeinfo>
 #include <functional>
 #include <iterator>
 #include <set>
-
-std::set<Box*> upForPartition;
 
 Game::Game( MainWindow& wnd )
 	:
@@ -44,72 +44,45 @@ Game::Game( MainWindow& wnd )
 	std::generate_n( std::back_inserter( boxPtrs ),nBoxes,[this]() {
 		return Box::Spawn( boxSize,bounds,world,rng );
 	} );
-	
-	em.Case( { Colors::Blue,Colors::Green } ) = 
-		[&]( const std::pair<Box*,Box*>& bp ) 
-	{ 
-		SplitSmallest( bp );
-	};
-	em.Case( { Colors::Blue,Colors::White } ) =
-		[]( const std::pair<Box*,Box*>& bp )
-	{
-		if ( bp.first->GetColorTrait().GetColor() == Colors::White )
-		{
-			bp.first->SetColorTrait( std::move( bp.second->GetColorTrait().Clone() ) );
-		}
-		else
-		{
-			bp.second->SetColorTrait( std::move( bp.first->GetColorTrait().Clone() ) );
-		}
-	};
-	em.Case( { Colors::Yellow,Colors::Blue } ) =
-		[&]( const std::pair<Box*,Box*>& bp )
-	{
-		if ( bp.first->GetColorTrait().GetColor() == Colors::Blue )
-		{
-			DestroyBox( bp.first );
-		}
-		else
-		{
-			DestroyBox( bp.second );
-		}
-	};
-	em.Case( { Colors::Red,Colors::Yellow } ) =
-		[]( const std::pair<Box*,Box*>& bp )
-	{
-		bp.first->ApplyLinearImpulse( bp.first->GetVelocity() * 0.5f );
-		bp.second->ApplyLinearImpulse( bp.second->GetVelocity() * 0.5f );
-	};
-	em.Case( { Colors::Cyan,Colors::Cyan } ) =
-		[&]( const std::pair<Box*,Box*>& bp )
-	{
-		world.SetGravity( -world.GetGravity() );
-	};
 
-	class Listener : public b2ContactListener
-	{
-	public:
-		void EndContact( b2Contact* contact ) override
-		{
-			const b2Body* bodyPtrs[] = { contact->GetFixtureA()->GetBody(),contact->GetFixtureB()->GetBody() };
-			if ( bodyPtrs[0]->GetType() == b2BodyType::b2_dynamicBody &&
-				 bodyPtrs[1]->GetType() == b2BodyType::b2_dynamicBody )
-			{
-				Box* boxPtrs[] = {
-					reinterpret_cast<Box*>( bodyPtrs[0]->GetUserData() ),
-					reinterpret_cast<Box*>( bodyPtrs[1]->GetUserData() )
-				};
+	static PatternMatchingListener mrLister;
 
-				if ( upForPartition.find( boxPtrs[0] ) == upForPartition.end() &&
-					 upForPartition.find( boxPtrs[1] ) == upForPartition.end() )
-				{
-					upForPartition.emplace( boxPtrs[0] );
-					upForPartition.emplace( boxPtrs[1] );
-				}
-			}
-		}
-	};
-	static Listener mrLister;
+	mrLister.Case<BlueTrait,GreenTrait>( [&]( Box* a,Box* b )
+										 {
+											 SplitSmallest( a,b );
+										 } );
+	mrLister.Case<BlueTrait,WhiteTrait>( []( Box* a,Box* b )
+										 {
+											 if ( a->GetColorTrait().GetColor() == Colors::White )
+											 {
+												 a->SetColorTrait( std::move( b->GetColorTrait().Clone() ) );
+											 }
+											 else
+											 {
+												 b->SetColorTrait( std::move( a->GetColorTrait().Clone() ) );
+											 }
+										 } );
+	mrLister.Case<YellowTrait,BlueTrait>( [&]( Box* a,Box* b )
+										  {
+											  if ( a->GetColorTrait().GetColor() == Colors::Blue )
+											  {
+												  DestroyBox( a );
+											  }
+											  else
+											  {
+												  DestroyBox( b );
+											  }
+										  } );
+	mrLister.Case<RedTrait,YellowTrait>( []( Box* a,Box* b )
+										 {
+											 a->ApplyLinearImpulse( a->GetVelocity() * 0.5f );
+											 b->ApplyLinearImpulse( b->GetVelocity() * 0.5f );
+										 } );
+	mrLister.Case<CyanTrait,CyanTrait>( [&]( Box* a,Box* b )
+										{
+											world.SetGravity( -world.GetGravity() );
+										} );
+
 	world.SetContactListener( &mrLister );
 }
 
@@ -128,16 +101,11 @@ void Game::UpdateModel()
 
 	if ( !world.IsLocked() )
 	{
-		if ( !upForPartition.empty() )
-		{
-			for ( auto it = upForPartition.begin(); it != upForPartition.end(); std::advance( it,1 ) )
-			{
-				auto prev = it;
-				std::advance( it,1 );
-				em.Call( { *prev,*it } );
-			}
-			upForPartition.clear();
-		}
+		// Destroy boxes marked for death
+		boxPtrs.erase(
+			std::remove_if( boxPtrs.begin(),boxPtrs.end(),std::mem_fn( &Box::IsMarkedForDeath ) ),
+			boxPtrs.end()
+		);
 	}
 }
 
@@ -154,7 +122,7 @@ bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 	const Mat2 rMat = _Mat2<float>::Rotation( box->GetAngle() );
 	const Vec2 oldBottomLeft = oldBoxCenter - Vec2{ oldSize,oldSize };
 	const Vec2 oldTopRight = oldBoxCenter + Vec2{ oldSize,oldSize };
-	for ( auto [pos,i] = std::pair( oldBottomLeft + Vec2{ newSize,newSize },0 );
+	for ( auto [pos,i] = std::pair( oldBottomLeft + Vec2{ newSize,newSize },0u );
 		  pos.y < oldTopRight.y && i < factor; pos.y += 2 * newSize,++i )
 	{
 		for ( pos.x = oldBottomLeft.x; pos.x < oldTopRight.x; pos.x += 2 * newSize )
@@ -174,31 +142,25 @@ bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
 	return true;
 }
 
-void Game::DestroyBox( const Box* box )
+void Game::DestroyBox( Box* box )
 {
-	auto target = std::find_if( boxPtrs.begin(),boxPtrs.end(),
-								[&box]( const std::unique_ptr<Box>& p )
-								{
-									return p.get() == box;
-								} );
-	target->reset();
-	boxPtrs.erase( target );
+	box->MarkForDeath();
 }
 
-void Game::SplitSmallest( const std::pair<Box*,Box*>& bp )
+void Game::SplitSmallest( Box* a,Box* b )
 {
-	if ( bp.first->GetSize() > bp.second->GetSize() )
+	if ( a->GetSize() > b->GetSize() )
 	{
-		if ( SplitBox( bp.first ) )
+		if ( SplitBox( a ) )
 		{
-			DestroyBox( bp.first );
+			DestroyBox( a );
 		}
 	}
 	else
 	{
-		if ( SplitBox( bp.second ) )
+		if ( SplitBox( b ) )
 		{
-			DestroyBox( bp.second );
+			DestroyBox( b );
 		}
 	}
 }

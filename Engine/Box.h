@@ -96,6 +96,14 @@ public:
 		pColorTrait.reset();
 		pColorTrait = std::move( ct );
 	}
+	void MarkForDeath()
+	{
+		isMarked = true;
+	}
+	bool IsMarkedForDeath() const
+	{
+		return isMarked;
+	}
 private:
 	static void Init()
 	{
@@ -110,4 +118,5 @@ private:
 	float size;
 	BodyPtr pBody;
 	std::unique_ptr<ColorTrait> pColorTrait;
+	bool isMarked = false;
 };

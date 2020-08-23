@@ -35,47 +35,6 @@
 
 class Game
 {
-private:
-	class EventManager
-	{
-	public:
-		EventManager()
-		{
-			dflt = []() {};
-		}
-		std::function<void( const std::pair<Box*,Box*>& )>& Case( std::pair<Color,Color> cp )
-		{
-			return map[cp];
-		}
-		std::function<void()>& Default()
-		{
-			return dflt;
-		}
-		void Call( const std::pair<Box*,Box*>& bp )
-		{
-			// Look up exact pair
-			if ( auto target = map.find( { bp.first->GetColorTrait().GetColor(),bp.second->GetColorTrait().GetColor() } );
-				 target != map.end() )
-			{
-				target->second( bp );
-			}
-			// Look up reversed pair
-			else if ( auto target = map.find( { bp.second->GetColorTrait().GetColor(),bp.first->GetColorTrait().GetColor() } );
-					 target != map.end() )
-			{
-				target->second( bp );
-			}
-			// Do default
-			else
-			{
-				dflt();
-			}
-		}
-
-	private:
-		std::unordered_map<std::pair<Color,Color>,std::function<void( const std::pair<Box*,Box*>& )>> map;
-		std::function<void()> dflt;
-	};
 public:
 	Game( class MainWindow& wnd );
 	Game( const Game& ) = delete;
@@ -87,8 +46,8 @@ private:
 	/********************************/
 	/*  User Functions              */
 	bool SplitBox( const Box* box,unsigned int factor = 2 );
-	void DestroyBox( const Box* box );
-	void SplitSmallest( const std::pair<Box*,Box*>& bp );
+	void DestroyBox( Box* box );
+	void SplitSmallest( Box* a,Box* b );
 	/********************************/
 private:
 	MainWindow& wnd;
@@ -105,6 +64,5 @@ private:
 	b2World world;
 	Boundaries bounds = Boundaries( world,boundarySize );
 	std::vector<std::unique_ptr<Box>> boxPtrs;
-	EventManager em;
 	/********************************/
 };
