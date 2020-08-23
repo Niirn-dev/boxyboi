@@ -4,6 +4,7 @@
 #include <functional>
 #include <typeinfo>
 #include <cassert>
+#include <type_traits>
 
 using TraitPair = std::pair<
 	const std::type_info*,
@@ -39,6 +40,10 @@ public:
 	template<class T,class U,class F>
 	void Case( F f )
 	{
+		static_assert( std::is_base_of_v<Box::ColorTrait,T>,"Template parameter T should be derived from Box::ColorTrait class" );
+		static_assert( std::is_base_of_v<Box::ColorTrait,U>,"Template parameter U should be derived from Box::ColorTrait class" );
+		static_assert( std::is_invocable_v<F,Box*,Box*>,"Template parameter F should be a function type with void( Box*,Box* ) signature" );
+
 		handlers[{ &typeid( T ),&typeid( U ) }] = f;
 		handlers[{ &typeid( U ),&typeid( T ) }] = std::bind(
 			f,std::placeholders::_2,std::placeholders::_1
@@ -47,6 +52,9 @@ public:
 	template<class T,class U>
 	bool HasCase()
 	{
+		static_assert( std::is_base_of_v<Box::ColorTrait,T>,"Template parameter T should be derived from Box::ColorTrait class" );
+		static_assert( std::is_base_of_v<Box::ColorTrait,U>,"Template parameter U should be derived from Box::ColorTrait class" );
+
 		if ( handlers.find( { &typeid( T ),&typeid( U ) } ) != handlers.end() )
 		{
 			return true;
@@ -56,12 +64,17 @@ public:
 	template<class T,class U>
 	void ClearCase()
 	{
+		static_assert( std::is_base_of_v<Box::ColorTrait,T>,"Template parameter T should be derived from Box::ColorTrait class" );
+		static_assert( std::is_base_of_v<Box::ColorTrait,U>,"Template parameter U should be derived from Box::ColorTrait class" );
+
 		handlers.erase( { &typeid( T ),&typeid( U ) } );
 		handlers.erase( { &typeid( U ),&typeid( T ) } );
 	}
 	template<class F>
 	void Default( F f )
 	{
+		static_assert( std::is_invocable_v<F,Box*,Box*>,"Template parameter F should be a function type with void( Box*,Box* ) signature" );
+
 		dflt = f;
 	}
 
