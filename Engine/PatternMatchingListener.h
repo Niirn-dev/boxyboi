@@ -65,7 +65,7 @@ public:
 		dflt = f;
 	}
 
-	void EndContact( b2Contact* contact ) override
+	void BeginContact( b2Contact* contact ) override
 	{
 		const b2Body* bodyPtrs[] = { contact->GetFixtureA()->GetBody(),contact->GetFixtureB()->GetBody() };
 		if ( bodyPtrs[0]->GetType() == b2BodyType::b2_dynamicBody &&

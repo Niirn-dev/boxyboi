@@ -29,6 +29,7 @@
 #include "Boundaries.h"
 #include "Pipeline.h"
 #include "SolidEffect.h"
+#include "Action.h"
 #include <random>
 #include <unordered_map>
 #include <functional>
@@ -45,9 +46,6 @@ private:
 	void UpdateModel();
 	/********************************/
 	/*  User Functions              */
-	bool SplitBox( const Box* box,unsigned int factor = 2 );
-	void DestroyBox( Box* box );
-	void SplitSmallest( Box* a,Box* b );
 	/********************************/
 private:
 	MainWindow& wnd;
@@ -56,13 +54,13 @@ private:
 	/*  User Variables              */
 	static constexpr float boundarySize = 10.0f;
 	static constexpr float boxSize = 1.0f;
-	static constexpr float minBoxSize = 0.15f;
-	static constexpr int nBoxes = 6;
+	static constexpr int nBoxes = 8;
 	std::mt19937 rng = std::mt19937( std::random_device{}() );
 	FrameTimer ft;
 	Pipeline<SolidEffect> pepe;
 	b2World world;
 	Boundaries bounds = Boundaries( world,boundarySize );
 	std::vector<std::unique_ptr<Box>> boxPtrs;
+	std::vector<std::unique_ptr<Action>> actions;
 	/********************************/
 };

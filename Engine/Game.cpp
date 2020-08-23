@@ -41,46 +41,55 @@ Game::Game( MainWindow& wnd )
 	pepe.effect.vs.cam.SetPos( { 0.0,0.0f } );
 	pepe.effect.vs.cam.SetZoom( 1.0f / boundarySize );
 
-	std::generate_n( std::back_inserter( boxPtrs ),nBoxes,[this]() {
-		return Box::Spawn( boxSize,bounds,world,rng );
-	} );
+	std::generate_n( std::back_inserter( boxPtrs ),nBoxes,
+					 [this]()
+					 {
+						 return Box::Spawn( boxSize,bounds,world,rng );
+					 } );
 
 	static PatternMatchingListener mrLister;
-
+	
 	mrLister.Case<BlueTrait,GreenTrait>( [&]( Box* a,Box* b )
 										 {
-											 SplitSmallest( a,b );
-										 } );
-	mrLister.Case<BlueTrait,WhiteTrait>( []( Box* a,Box* b )
-										 {
-											 if ( a->GetColorTrait().GetColor() == Colors::White )
+											 if ( a->GetSize() > b->GetSize() )
 											 {
-												 a->SetColorTrait( std::move( b->GetColorTrait().Clone() ) );
+												 actions.push_back( std::make_unique<Split>( a ) );
 											 }
 											 else
 											 {
-												 b->SetColorTrait( std::move( a->GetColorTrait().Clone() ) );
+												 actions.push_back( std::make_unique<Split>( b ) );
+											 }
+										 } );
+	mrLister.Case<BlueTrait,WhiteTrait>( [&]( Box* a,Box* b )
+										 {
+											 if ( a->GetColorTrait().GetColor() == Colors::White )
+											 {
+												 actions.push_back( std::make_unique<Tag>( a,b->GetColorTrait().Clone() ) );
+											 }
+											 else
+											 {
+												 actions.push_back( std::make_unique<Tag>( b,a->GetColorTrait().Clone() ) );
 											 }
 										 } );
 	mrLister.Case<YellowTrait,BlueTrait>( [&]( Box* a,Box* b )
 										  {
 											  if ( a->GetColorTrait().GetColor() == Colors::Blue )
 											  {
-												  DestroyBox( a );
+												  actions.push_back( std::make_unique<Destroy>( a ) );
 											  }
 											  else
 											  {
-												  DestroyBox( b );
+												  actions.push_back( std::make_unique<Destroy>( b ) );
 											  }
 										  } );
-	mrLister.Case<RedTrait,YellowTrait>( []( Box* a,Box* b )
+	mrLister.Case<RedTrait,YellowTrait>( [&]( Box* a,Box* b )
 										 {
-											 a->ApplyLinearImpulse( a->GetVelocity() * 0.5f );
-											 b->ApplyLinearImpulse( b->GetVelocity() * 0.5f );
+											 actions.push_back( std::make_unique<Push>( a ) );
+											 actions.push_back( std::make_unique<Push>( b ) );
 										 } );
 	mrLister.Case<CyanTrait,CyanTrait>( [&]( Box* a,Box* b )
 										{
-											world.SetGravity( -world.GetGravity() );
+											actions.push_back( std::make_unique<ReverseGravity>() );
 										} );
 
 	world.SetContactListener( &mrLister );
@@ -101,67 +110,18 @@ void Game::UpdateModel()
 
 	if ( !world.IsLocked() )
 	{
+		// Do actions
+		for ( auto& a : actions )
+		{
+			a->Do( boxPtrs,world );
+		}
+		actions.clear();
+
 		// Destroy boxes marked for death
 		boxPtrs.erase(
 			std::remove_if( boxPtrs.begin(),boxPtrs.end(),std::mem_fn( &Box::IsMarkedForDeath ) ),
 			boxPtrs.end()
 		);
-	}
-}
-
-bool Game::SplitBox( const Box* box,unsigned int factor/*= 2*/ )
-{
-	const float oldSize = box->GetSize();
-	const float newSize = oldSize / (float)factor;
-	if ( newSize < minBoxSize )
-	{
-		return false;
-	}
-
-	const Vec2 oldBoxCenter = box->GetPosition();
-	const Mat2 rMat = _Mat2<float>::Rotation( box->GetAngle() );
-	const Vec2 oldBottomLeft = oldBoxCenter - Vec2{ oldSize,oldSize };
-	const Vec2 oldTopRight = oldBoxCenter + Vec2{ oldSize,oldSize };
-	for ( auto [pos,i] = std::pair( oldBottomLeft + Vec2{ newSize,newSize },0u );
-		  pos.y < oldTopRight.y && i < factor; pos.y += 2 * newSize,++i )
-	{
-		for ( pos.x = oldBottomLeft.x; pos.x < oldTopRight.x; pos.x += 2 * newSize )
-		{
-			const Vec2 toRotatedPos = ( pos - oldBoxCenter ) * rMat;
-			boxPtrs.push_back( std::make_unique<Box>(
-					std::move( box->GetColorTrait().Clone() ),
-					world,
-					oldBoxCenter + toRotatedPos,
-					newSize,
-					box->GetAngle(),
-					box->GetVelocity(),
-					box->GetAngularVelocity()
-				) );
-		}
-	}
-	return true;
-}
-
-void Game::DestroyBox( Box* box )
-{
-	box->MarkForDeath();
-}
-
-void Game::SplitSmallest( Box* a,Box* b )
-{
-	if ( a->GetSize() > b->GetSize() )
-	{
-		if ( SplitBox( a ) )
-		{
-			DestroyBox( a );
-		}
-	}
-	else
-	{
-		if ( SplitBox( b ) )
-		{
-			DestroyBox( b );
-		}
 	}
 }
 

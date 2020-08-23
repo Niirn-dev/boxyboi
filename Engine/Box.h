@@ -93,7 +93,6 @@ public:
 	}
 	void SetColorTrait( std::unique_ptr<ColorTrait> ct )
 	{
-		pColorTrait.reset();
 		pColorTrait = std::move( ct );
 	}
 	void MarkForDeath()
@@ -104,6 +103,7 @@ public:
 	{
 		return isMarked;
 	}
+	std::vector<std::unique_ptr<Box>> Split( b2World& world );
 private:
 	static void Init()
 	{
@@ -115,8 +115,14 @@ private:
 	}
 private:
 	static IndexedTriangleList<Vec2> model;
+	static constexpr float minSize = 0.1f;
 	float size;
 	BodyPtr pBody;
 	std::unique_ptr<ColorTrait> pColorTrait;
 	bool isMarked = false;
+public:
+	static constexpr float MinSize()
+	{
+		return minSize;
+	}
 };
