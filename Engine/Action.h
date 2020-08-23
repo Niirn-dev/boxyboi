@@ -100,3 +100,22 @@ private:
 	Box* target;
 	float factor;
 };
+
+class Consume : public Action
+{
+public:
+	Consume( Box* eater,Box* food )
+		:
+		eater( eater ),
+		food( food )
+	{
+	}
+	void Do( std::vector<std::unique_ptr<Box>>& boxes,b2World& world ) override
+	{
+		boxes.push_back( eater->GetExpanded( world,food->GetSize() * 0.15f ) );
+		food->MarkForDeath();
+	}
+private:
+	Box* eater;
+	Box* food;
+};

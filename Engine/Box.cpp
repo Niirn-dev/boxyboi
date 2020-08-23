@@ -1,5 +1,6 @@
 #include "Box.h"
 #include "ColorTrait.h"
+#include "Rect.h"
 IndexedTriangleList<Vec2> Box::model;
 
 std::unique_ptr<Box> Box::Spawn( float size,const Boundaries& bounds,b2World& world,std::mt19937& rng )
@@ -41,6 +42,69 @@ std::unique_ptr<Box> Box::Spawn( float size,const Boundaries& bounds,b2World& wo
 	}
 	
 	return std::make_unique<Box>( std::move( pColorTrait ),world,pos,size,ang,linVel,angVel );
+}
+
+std::unique_ptr<Box> Box::GetExpanded( b2World& world,float delta_size )
+{
+	// Get pointer to boundries object
+	auto body = world.GetBodyList();
+	while ( body->GetType() != b2BodyType::b2_staticBody &&
+			body != nullptr )
+	{
+		body = body->GetNext();
+	}
+	if ( body != nullptr )
+	{
+		auto bound = reinterpret_cast<Boundaries*>( body->GetUserData() );
+		// Add some dead zone around the boundries
+		const float boundSize = bound->GetSize() - 0.5f;
+
+		// Make sure box wont go out of bounds when expaned
+		Vec2 center = GetPosition();
+		const Vec2 baseCorner = Vec2{ size + delta_size,size + delta_size } * Mat2::Rotation( GetAngle() );
+		for ( int i = 0; i < 4; ++i )
+		{
+			const Vec2 corner = GetPosition() + baseCorner * Mat2::Rotation( (float)i * PI / 2.0f );
+			// Only want to modify center position once per axis
+			if ( center.x == GetPosition().x )
+			{
+				if ( corner.x > boundSize )
+				{
+					center.x -= corner.x - boundSize;
+				}
+				else if ( corner.x < -boundSize )
+				{
+					center.x -= corner.x + boundSize;
+				}
+			}
+			if ( center.y == GetPosition().y )
+			{
+				if ( corner.y > boundSize )
+				{
+					center.y -= corner.y - boundSize;
+				}
+				else if ( corner.y < -boundSize )
+				{
+					center.y -= corner.y + boundSize;
+				}
+			}
+		}
+
+		auto expanded = std::make_unique<Box>(
+			GetColorTrait().Clone(),
+			world,
+			center,
+			size + delta_size,
+			GetAngle(),
+			GetVelocity(),
+			GetAngularVelocity()
+			);
+		MarkForDeath();
+		return std::move( expanded );
+	}
+
+	// Should never get here. In theory
+	return nullptr;
 }
 
 std::vector<std::unique_ptr<Box>> Box::Split( b2World& world )

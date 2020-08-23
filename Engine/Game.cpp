@@ -75,11 +75,11 @@ Game::Game( MainWindow& wnd )
 										  {
 											  if ( a->GetColorTrait().GetColor() == Colors::Blue )
 											  {
-												  actions.push_back( std::make_unique<Destroy>( a ) );
+												  actions.push_back( std::make_unique<Consume>( b,a ) );
 											  }
 											  else
 											  {
-												  actions.push_back( std::make_unique<Destroy>( b ) );
+												  actions.push_back( std::make_unique<Consume>( a,b ) );
 											  }
 										  } );
 	mrLister.Case<RedTrait,YellowTrait>( [&]( Box* a,Box* b )

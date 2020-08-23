@@ -87,6 +87,7 @@ public:
 	{
 		return size;
 	}
+	std::unique_ptr<Box> GetExpanded( b2World& world,float delta_size );
 	const ColorTrait& GetColorTrait() const
 	{
 		return *pColorTrait;
